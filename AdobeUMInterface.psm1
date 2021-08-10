@@ -419,7 +419,7 @@ function Get-AdobeAuthToken
 
     #Now we request the auth token
     $Body = "client_id=$($ClientInformation.APIKey)&client_secret=$($ClientInformation.ClientSecret)&jwt_token=$JWT"
-    $ClientInformation.Token=Invoke-RestMethod -Method Post -Uri $AuthTokenURI+"/ims/exchange/jwt/" -Body $Body -ContentType "application/x-www-form-urlencoded"
+    $ClientInformation.Token=Invoke-RestMethod -Method Post -Uri ($AuthTokenURI+"/ims/exchange/jwt/") -Body $Body -ContentType "application/x-www-form-urlencoded"
 }
 
 #endregion
@@ -448,7 +448,6 @@ function Get-AdobeUsers
     Param
     (
         [string]$UM_Server="https://usermanagement.adobe.io/v2/usermanagement/", 
-        [int]$Page=-1,
         [ValidateScript({$_.Token -ne $null})]
         [Parameter(Mandatory=$true)]$ClientInformation
     )
@@ -457,15 +456,8 @@ function Get-AdobeUsers
     $Results = @()
 
     #URI of the query endpoint
-    $URIPrefix = $UM_Server+"users/$($ClientInformation.OrgID)/"
-
-    $LoopToEnd = $true;
-    if ($Page -lt 0) {
-        $Page =0
-    } else {
-        $LoopToEnd = $false;
-    }
-
+    $URIPrefix = $UM_SERVER+"users/$($ClientInformation.OrgID)/{PAGE}" #Yes page before groupname...
+    $Page = 0
     #Request headers
     $Headers = @{Accept="application/json";
              "Content-Type"="application/json";
@@ -475,31 +467,22 @@ function Get-AdobeUsers
     while($true)
     {
         try {
-            $QueryResponse = Invoke-RestMethod -Method Get -Uri ($URIPrefix+$Page.ToString()) -Header $Headers
-        } catch {
-            if ($_.Exception.Response.StatusCode.value__ -eq '429') {
-            #https://adobe-apiplatform.github.io/umapi-documentation/en/api/ActionsRef.html#actionThrottle
-            Write-Warning "Adobe is throttling our user query. This cmdlet will now sleep 30 seconds and continue."
-            Start-Sleep -Seconds 30
-            $Paused = $true
-            }
-        }
-        if ($Paused -eq $true) {
-            #reset paused flag so loop can try getting page again
-            $Paused = $false
-        }
-        else {
-            #Currently not required, but other queries will just keep dumping the same users as you loop though pages
-            if ($Results -ne $null -and (@()+$Results.email).Contains($QueryResponse[0].email))
-            {
-                break;
-            }
+            $QueryResponse = Invoke-RestMethod -Method Get -Uri ($URIPrefix.Replace("{PAGE}", $Page.ToString())) -Header $Headers
             $Results += $QueryResponse.users
             $Page++;
-            #Different API endpoints have different ways of telling you if you are done.
-            if ($QueryResponse.lastPage -eq $true -or $QueryResponse -eq $null -or $QueryResponse.Length -eq 0 -or -not $LoopToEnd)
+            if ($QueryResponse.lastPage -eq $true -or $QueryResponse -eq $null -or $QueryResponse.users.Length -eq 0)
             {
-                break; 
+                break
+            }
+        } catch {
+            if ($_.Exception.Response.StatusCode -eq 429) {
+                #https://adobe-apiplatform.github.io/umapi-documentation/en/api/getUsersWithPage.html#getUsersWithPageThrottle
+                Write-Warning "Adobe is throttling our user query. This cmdlet will now sleep the requested $($_.Exception.Response.Headers["Retry-After"]) seconds before retrying..."
+                Start-Sleep -Seconds $_.Exception.Response.Headers["Retry-After"]
+                Write-Warning "Continuing with query."
+            } else {
+                Write-Error $_.Exception;
+                return $null
             }
         }
     }
