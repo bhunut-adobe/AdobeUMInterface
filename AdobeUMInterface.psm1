@@ -681,20 +681,26 @@ function Get-AdobeGroupMembers
 
     while($true)
     {
-        $QueryResponse = Invoke-RestMethod -Method Get -Uri ($URIPrefix.Replace("{PAGE}", $Page.ToString())) -Header $Headers
-        if ($QueryResponse.error_code -ne $null -and $QueryResponse.error_code.ToString().StartsWith("429")) {
-            #https://adobe-apiplatform.github.io/umapi-documentation/en/api/getUsersWithPage.html#getUsersWithPageThrottle
-            #I never got blocked testing this, not sure if this is needed, but just in case it does
-            Write-Warning "Adobe is throttling our query. This cmdlet will now sleep 1 minute and continue."
-            Start-Sleep -Seconds 60
-        }
-        else 
-        {
+        try {
+            $QueryResponse = Invoke-RestMethod -Method Get -Uri ($URIPrefix.Replace("{PAGE}", $Page.ToString())) -Header $Headers
             $Results += $QueryResponse.users
             $Page++;
             if ($QueryResponse.lastPage -eq $true -or $QueryResponse -eq $null -or $QueryResponse.users.Length -eq 0)
             {
                 break
+            }
+        } catch {
+            if ($_.Exception.Response.StatusCode -eq 429) {
+                #https://adobe-apiplatform.github.io/umapi-documentation/en/api/getUsersWithPage.html#getUsersWithPageThrottle
+                Write-Warning "Adobe is throttling our user query. This cmdlet will now sleep the requested $($_.Exception.Response.Headers["Retry-After"]) seconds before retrying..."
+                Start-Sleep -Seconds $_.Exception.Response.Headers["Retry-After"]
+                Write-Warning "Continuing with query."
+            } elseif ($_.Exception.Response.StatusCode -eq 404) {
+                # User not found
+                return $null
+            } else {
+                Write-Error $_.Exception;
+                return $null
             }
         }
     }
