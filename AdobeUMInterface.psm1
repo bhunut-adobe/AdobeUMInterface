@@ -1087,9 +1087,9 @@ Function New-SyncADGroupRequest {
     Service account information including token
   
 .EXAMPLE
-    New-RemoveUnusedAbobeUsersRequest -ClientInformation $MyClientInfo
+    New-RemoveUnusedAdobeUsersRequest -ClientInformation $MyClientInfo
 #>
-function New-RemoveUnusedAbobeUsersRequest
+function New-RemoveUnusedAdobeUsersRequest
 {
     Param
     (
@@ -1261,4 +1261,4 @@ Export-ModuleMember -Function "New-Cert", "Import-PFXCert", "ConvertTo-Base64URL
                                 "Get-AdobeGroups", "Get-AdobeGroupMembers", "Get-AdobeGroupAdmins", "New-CreateUserRequest", "New-RemoveUserRequest", 
                                 "New-RemoveUserFromGroupRequest", "New-GroupUserAddAction", "New-GroupUserRemoveAction", "New-AddToGroupRequest", 
                                 "Expand-JWTInformation", "Send-UserManagementRequest", "New-SyncADGroupRequest", 
-                                "New-RemoveUnusedAbobeUsersRequest", "Get-AdobeUser", "Import-AdobeUMCert"
+                                "New-RemoveUnusedAdobeUsersRequest", "Get-AdobeUser", "Import-AdobeUMCert"
