@@ -387,14 +387,14 @@ function Get-AdobeAuthToken
         [Parameter(Mandatory=$true)]$ClientInformation,
         [ValidateScript({$_.PrivateKey -ne $null})] 
         [Parameter(Mandatory=$true)]$SignatureCert, 
-        [string]$AuthTokenURI="https://ims-na1.adobelogin.com/ims/exchange/jwt/", 
+        [string]$AuthTokenURI="https://ims-na1.adobelogin.com", 
         [int]$ExpirationInHours=1
     )
     $PayLoad = New-Object -TypeName PSObject -Property @{
                                                             iss=$ClientInformation.OrgID;
                                                             sub=$ClientInformation.TechnicalAccountID;
-                                                            aud="https://ims-na1.adobelogin.com/c/"+$ClientInformation.APIKey;
-                                                            "https://ims-na1.adobelogin.com/s/ent_user_sdk"=$true;#MetaScope
+                                                            aud="$($AuthTokenURI)/c/"+$ClientInformation.APIKey;
+                                                            "$($AuthTokenURI)/s/ent_user_sdk"=$true;#MetaScope
                                                             exp=(ConvertTo-JavaTime -DateTimeObject ([DateTime]::Now.AddHours($ExpirationInHours)));
                                                         }
     #Header for the JWT
@@ -419,7 +419,7 @@ function Get-AdobeAuthToken
 
     #Now we request the auth token
     $Body = "client_id=$($ClientInformation.APIKey)&client_secret=$($ClientInformation.ClientSecret)&jwt_token=$JWT"
-    $ClientInformation.Token=Invoke-RestMethod -Method Post -Uri $AuthTokenURI -Body $Body -ContentType "application/x-www-form-urlencoded"
+    $ClientInformation.Token=Invoke-RestMethod -Method Post -Uri $AuthTokenURI+"/ims/exchange/jwt/" -Body $Body -ContentType "application/x-www-form-urlencoded"
 }
 
 #endregion
