@@ -1181,6 +1181,9 @@ function New-GroupUserRemoveAction
 .PARAMETER Requests
     An array of requests to send to adobe
 
+.PARAMETER TestMode
+    Run the commands in test mode. If enabled, parameter syntactic and (limited) semantic checking is done, but the specified operations are not performed, so no user accounts or group memberships are created, changed, or deleted.
+
 .NOTES
     See the New-*Request
   
