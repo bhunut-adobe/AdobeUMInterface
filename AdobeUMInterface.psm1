@@ -1194,7 +1194,8 @@ function Send-UserManagementRequest
         [string]$UM_Server="https://usermanagement.adobe.io/v2/usermanagement/",
         [ValidateScript({$_.Token -ne $null})]
         [Parameter(Mandatory=$true)]$ClientInformation,
-        $Requests
+        $Requests,
+        [Switch]$TestMode=$false
     )
     #Ensure is array
     $Request = @()+$Requests
@@ -1224,7 +1225,7 @@ function Send-UserManagementRequest
 
     #Prepare Headers
     #https://adobe-apiplatform.github.io/umapi-documentation/en/api/ActionsRef.html
-    $URI = "$($UM_Server)action/$($ClientInformation.OrgID)"
+    $URI = "$($UM_Server)action/$($ClientInformation.OrgID)?testOnly=$($TestMode)"
     $Headers = @{Accept="application/json";
             "Content-Type"="application/json";
             "x-api-key"=$ClientInformation.APIKey;
